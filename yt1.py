@@ -30,11 +30,31 @@ def main():
     )
     response = request.execute()
 
-    print (json.dumps(response, sort_keys=True, indent=4))
-    num=1
+    # print (json.dumps(response, sort_keys=True, indent=4))
+    try:
+        nextPageToken = response['nextPageToken']
+        while('nextPageToken' in response):
+            nextPage = youtube.subscriptions().list(
+                part="snippet",
+                channelId="UCqnrUcKVSJX2nSmqJomc5Vw",
+                maxResults=50,
+                pageToken=nextPageToken
+            ).execute()
+            response['items']=response['items']+nextPage['items']
+            if 'nextPageToken' not in nextPage:
+                response.pop('nextPageToken', None)
+            else:
+                nextPageToken = nextPage['nextPageToken']
+
+    except:
+        print("Error in nextPageToken")
+
+    num = 1
     for it in response['items']:
-        print(num,'...', it['snippet']['title'], it['snippet']['resourceId']['channelId'])
-        num=num+1
+        print(num, '...', it['snippet']['title'], it['snippet']['resourceId']['channelId'])
+        num = num + 1
+
+
 
 
 
