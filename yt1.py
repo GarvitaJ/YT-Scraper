@@ -23,6 +23,7 @@ def main():
     youtube = googleapiclient.discovery.build(
         api_service_name, api_version, credentials=credentials)
 
+
     request = youtube.subscriptions().list(
         part="snippet",
         channelId="UCqnrUcKVSJX2nSmqJomc5Vw",
@@ -32,6 +33,7 @@ def main():
 
     # print (json.dumps(response, sort_keys=True, indent=4))
     try:
+        #to go through all the pages, one page will show max 50 subscriptions
         nextPageToken = response['nextPageToken']
         while('nextPageToken' in response):
             nextPage = youtube.subscriptions().list(
@@ -49,10 +51,28 @@ def main():
     except:
         print("Error in nextPageToken")
 
-    num = 1
+    # #printing subsribed channel name and id
+    # num = 1
+    # for it in response['items']:
+    #     print(num, '...', it['snippet']['title'], it['snippet']['resourceId']['channelId'])
+    #     num = num + 1
+
+    # connection to database
+    conn = sqlite3.connect('youtubedata.sqlite')
+    cur = conn.cursor()
+
+    # insert into table
+    cur.execute('''
+    CREATE TABLE IF NOT EXISTS Subscriptions (ChannelId TEXT, Name TEXT)''')
+
     for it in response['items']:
-        print(num, '...', it['snippet']['title'], it['snippet']['resourceId']['channelId'])
-        num = num + 1
+        id = it['snippet']['resourceId']['channelId']
+        name = it['snippet']['title']
+        # cur.execute('''INSERT INTO Subscriptions(ChannelId, Name)
+        #           VALUES (?,?)''', (id, name))
+        cur.execute('''INSERT INTO Subscriptions (ChannelId, Name)
+                    VALUES ( ?, ? )''', (id, name ))
+        conn.commit()
 
 
 
