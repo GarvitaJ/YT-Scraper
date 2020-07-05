@@ -3,6 +3,7 @@ import json
 import sqlite3
 import urllib.request,urllib.parse
 
+import re
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
 import googleapiclient.errors
@@ -53,13 +54,7 @@ def main():
     except:
         print("Error in nextPageToken")
 
-    # #printing subsribed channel name and id
-    # num = 1
-    # for it in response['items']:
-    #     print(num, '...', it['snippet']['title'], it['snippet']['resourceId']['channelId'])
-    #     num = num + 1
-
-    # connection to database
+     # connection to database
     conn = sqlite3.connect('youtubedata.sqlite')
     cur = conn.cursor()
 
@@ -69,18 +64,42 @@ def main():
     for it in response['items']:
         id = it['snippet']['resourceId']['channelId']
         name = it['snippet']['title']
-        # cur.execute('''INSERT INTO Subscriptions(ChannelId, Name)
-        #           VALUES (?,?)''', (id, name))
         cur.execute('''INSERT OR IGNORE INTO Subscriptions (ChannelId, Name)
                     VALUES ( ?, ? )''', (id, name ))
         conn.commit()
 
-    sqlstr='''SELECT ChannelId from Subscriptions'''
+    sqlstr='''SELECT ChannelId from Subscriptions ORDER BY RANDOM()'''
 
-    # serviceurl='https://www.youtube.com/channel/'
-    # for id in cur.execute(sqlstr):
-    #     url = serviceurl + id[0]
-    #     fhand=urllib.request.urlopen(url)
+    serviceurl='https://www.youtube.com/watch?'
+
+    for id in cur.execute(sqlstr):
+        request2 = youtube.playlists().list(  #gives all the uploaded videos
+            part="snippet",
+            channelId=id[0],
+            maxResults=50
+        )
+        response2 = request2.execute()
+
+        # print(json.dumps(response2, sort_keys=True, indent=4))
+
+
+        for it in response2['items']:
+            if re.search('dance', it['snippet']['description']) or re.search('dance', it['snippet']['title']):
+                pid=it['id']
+                request3=youtube.playlistItems().list(
+                 part="snippet",
+                 playlistId=pid,
+                 maxResults=50,
+                )
+                response3=request3.execute()
+                n=1
+                for vid in response3['items']:
+                    vId=vid['snippet']['resourceId']['videoId']
+                    url=serviceurl + urllib.parse.urlencode({'v':vId})
+                    print( url)
+                    n=n+1
+
+
 
 
 if __name__ == "__main__":
